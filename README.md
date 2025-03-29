@@ -2,8 +2,6 @@
 
 CodeBug Analyzer is a comprehensive code analysis tool that scans repositories for bugs and generates detailed reports. It helps developers identify potential bugs and issues in their code, focusing on best practices and common programming mistakes.
 
-![CodeBug Analyzer](generated-icon.png)
-
 ## Features
 
 - **Repository Analysis**: Scan GitHub repositories for potential bugs and code issues
@@ -26,7 +24,7 @@ CodeBug Analyzer is a comprehensive code analysis tool that scans repositories f
 
 1. Clone the repository:
    ```
-   git clone https://github.com/yourusername/codebug-analyzer.git
+   git clone https://github.com/aphator-tech/CodeBugHunter.git
    cd codebug-analyzer
    ```
 
