@@ -1,11 +1,12 @@
 import os
 import logging
-from flask import render_template, request, redirect, url_for, flash, jsonify, session
-from app import db
+from flask import render_template, request, redirect, url_for, flash, jsonify, session, send_from_directory
+from app import db, app
 from models import Repository, Scan, Bug, LanguageStats
 from services.repository import clone_repository, get_repository_name, cleanup_repository
 from services.analyzer import analyze_repository
 from services.report_generator import generate_report
+from services.individual_report_generator import generate_individual_bug_reports
 from urllib.parse import urlparse
 
 logger = logging.getLogger(__name__)
@@ -136,6 +137,82 @@ def register_routes(app):
                 'language': bug.language
             })
         return jsonify(result)
+        
+    @app.route('/scan/<int:scan_id>/generate-reports')
+    def generate_reports(scan_id):
+        scan = Scan.query.get_or_404(scan_id)
+        repo = Repository.query.get(scan.repository_id)
+        
+        try:
+            # Generate individual bug reports
+            reports_count = generate_individual_bug_reports(scan_id, repo)
+            
+            flash(f'Successfully generated {reports_count} individual bug reports for {repo.name}', 'success')
+            
+            # Redirect to the individual reports page
+            return redirect(url_for('view_reports', scan_id=scan_id))
+        except Exception as e:
+            logger.error(f"Error generating individual reports: {str(e)}")
+            flash(f'Error generating reports: {str(e)}', 'danger')
+            
+            # Redirect back to results if there was an error
+            return redirect(url_for('results', scan_id=scan_id))
+    
+    @app.route('/scan/<int:scan_id>/reports')
+    def view_reports(scan_id):
+        from datetime import datetime
+        import json
+        import os
+        
+        scan = Scan.query.get_or_404(scan_id)
+        repo = Repository.query.get(scan.repository_id)
+        
+        # Create safe repository name
+        safe_repo_name = repo.name.replace('/', '_').replace('\\', '_')
+        repo_dir = os.path.join('results', safe_repo_name)
+        
+        reports = []
+        
+        # Check if directory exists
+        if os.path.exists(repo_dir):
+            # List JSON files in the directory
+            for filename in os.listdir(repo_dir):
+                if filename.endswith('.json'):
+                    file_path = os.path.join(repo_dir, filename)
+                    
+                    try:
+                        # Read report content
+                        with open(file_path, 'r') as f:
+                            content = json.load(f)
+                            
+                        # Extract information from the report
+                        bug_type = content.get('general_info', {}).get('vulnerability_category', 'Unknown')
+                        severity = content.get('severity', {}).get('level', 'Unknown')
+                        
+                        reports.append({
+                            'filename': filename,
+                            'path': os.path.join(safe_repo_name, filename),
+                            'bug_type': bug_type,
+                            'severity': severity,
+                            'content': json.dumps(content, indent=2)
+                        })
+                    except Exception as e:
+                        logger.error(f"Error reading report file {file_path}: {str(e)}")
+        
+        # Sort reports by severity (critical first)
+        severity_order = {'critical': 0, 'high': 1, 'medium': 2, 'low': 3, 'info': 4, 'Unknown': 5}
+        reports.sort(key=lambda x: severity_order.get(x['severity'], 999))
+        
+        return render_template('individual_reports.html', 
+                              scan=scan, 
+                              repo=repo, 
+                              reports=reports, 
+                              timestamp=datetime.utcnow())
+    
+    @app.route('/results/<path:path>')
+    def download_report(path):
+        """Serve the individual bug reports from the results directory"""
+        return send_from_directory('results', path)
     
     @app.errorhandler(404)
     def page_not_found(e):

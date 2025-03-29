@@ -1,0 +1,132 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h3 class="card-title mb-0">
+                    <i class="fas fa-file-alt me-2"></i>Individual Bug Reports
+                </h3>
+                <a href="{{ url_for('results', scan_id=scan.id) }}" class="btn btn-sm btn-outline-primary">
+                    <i class="fas fa-arrow-left me-1"></i>Back to Results
+                </a>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-12">
+                        <h4>Repository: {{ repo.name }}</h4>
+                        <p>
+                            <a href="{{ repo.url }}" target="_blank" class="text-decoration-none">
+                                <i class="fab fa-github me-1"></i>{{ repo.url }}
+                            </a>
+                        </p>
+                        <p>Generated on: {{ timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+                        
+                        <div class="alert alert-info mt-3">
+                            <i class="fas fa-info-circle me-2"></i>All individual bug reports have been generated in the <code>results/{{ repo.name }}</code> directory.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="card-title"><i class="fas fa-list me-2"></i>Available Reports</h4>
+            </div>
+            <div class="card-body">
+                {% if reports %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Report Name</th>
+                                <th>Bug Type</th>
+                                <th>Severity</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for report in reports %}
+                            <tr>
+                                <td>{{ report.filename }}</td>
+                                <td>{{ report.bug_type }}</td>
+                                <td>
+                                    <span class="badge bg-{{ 
+                                        'danger' if report.severity == 'critical' else 
+                                        'warning' if report.severity == 'high' else 
+                                        'info' if report.severity == 'medium' else 
+                                        'success' if report.severity == 'low' else 
+                                        'secondary' 
+                                    }}">
+                                        {{ report.severity }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <a href="{{ url_for('download_report', path=report.path) }}" class="btn btn-sm btn-outline-primary" download>
+                                        <i class="fas fa-download me-1"></i>Download
+                                    </a>
+                                    <button class="btn btn-sm btn-outline-info ms-1" data-bs-toggle="modal" data-bs-target="#reportModal-{{ loop.index }}">
+                                        <i class="fas fa-eye me-1"></i>View
+                                    </button>
+                                </td>
+                            </tr>
+                            
+                            <!-- Modal for report preview -->
+                            <div class="modal fade" id="reportModal-{{ loop.index }}" tabindex="-1" aria-labelledby="reportModalLabel-{{ loop.index }}" aria-hidden="true">
+                                <div class="modal-dialog modal-lg">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title" id="reportModalLabel-{{ loop.index }}">{{ report.filename }}</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <pre><code class="language-json">{{ report.content }}</code></pre>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <a href="{{ url_for('download_report', path=report.path) }}" class="btn btn-primary" download>
+                                                <i class="fas fa-download me-1"></i>Download
+                                            </a>
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>No individual bug reports have been generated yet. 
+                    <a href="{{ url_for('generate_reports', scan_id=scan.id) }}" class="alert-link">Click here to generate them</a>.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize syntax highlighting for JSON
+    const codeElements = document.querySelectorAll('pre code');
+    if (codeElements.length > 0) {
+        highlightCodeSnippets(codeElements);
+    }
+    
+    // Initialize tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl)
+    });
+});
+</script>
+{% endblock %}

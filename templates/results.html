@@ -135,8 +135,11 @@
 <div class="row">
     <div class="col-md-12">
         <div class="card">
-            <div class="card-header">
+            <div class="card-header d-flex justify-content-between align-items-center">
                 <h4 class="card-title"><i class="fas fa-list me-2"></i>Bug List</h4>
+                <a href="{{ url_for('generate_reports', scan_id=scan.id) }}" class="btn btn-sm btn-outline-primary">
+                    <i class="fas fa-file-export me-1"></i>Generate Individual Reports
+                </a>
             </div>
             <div class="card-body">
                 {% if bugs.items %}
@@ -226,6 +229,9 @@
                                             {% endif %}
                                         </div>
                                         <div class="modal-footer">
+                                            <a href="{{ url_for('view_reports', scan_id=scan.id) }}" class="btn btn-primary">
+                                                <i class="fas fa-file-export me-1"></i>View Individual Reports
+                                            </a>
                                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                                         </div>
                                     </div>
