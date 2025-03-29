@@ -1,0 +1,151 @@
+/* CodeBug Analyzer - Custom CSS */
+
+/* Code snippet highlighting */
+pre {
+    background-color: #1e1e1e;
+    border-radius: 5px;
+    padding: 15px;
+    overflow-x: auto;
+    margin-bottom: 1rem;
+}
+
+pre code {
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    font-size: 0.9rem;
+}
+
+pre code .highlighted-line {
+    background-color: rgba(255, 255, 0, 0.1);
+    display: block;
+    width: 100%;
+}
+
+pre code .keyword {
+    color: #569cd6;
+}
+
+pre code .string {
+    color: #ce9178;
+}
+
+pre code .number {
+    color: #b5cea8;
+}
+
+pre code .comment {
+    color: #6a9955;
+}
+
+/* Chart containers */
+.chart-container {
+    position: relative;
+    height: 300px;
+    width: 100%;
+}
+
+/* Custom styling for cards */
+.card {
+    border: none;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    margin-bottom: 1.5rem;
+}
+
+.card-header {
+    background-color: rgba(0, 0, 0, 0.2);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Repository URL input field */
+#repo_url {
+    border-top-right-radius: 0.25rem;
+    border-bottom-right-radius: 0.25rem;
+}
+
+/* Custom footer */
+.footer {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    height: 60px;
+    line-height: 60px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Add some spacing before footer */
+.container {
+    margin-bottom: 80px;
+}
+
+/* Bug count badges */
+.badge {
+    font-size: 0.85rem;
+    padding: 0.35em 0.65em;
+}
+
+/* Responsive tables */
+.table-responsive {
+    margin-bottom: 1rem;
+}
+
+/* Modal customization */
+.modal-header, .modal-footer {
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Add some animation to the analyze button */
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(0, 123, 255, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 10px rgba(0, 123, 255, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(0, 123, 255, 0);
+    }
+}
+
+#analyze-btn:hover {
+    animation: pulse 1.5s infinite;
+}
+
+/* Severity bar */
+.progress {
+    background-color: rgba(0, 0, 0, 0.2);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* Make sure all text in table cells is visible */
+.table td, .table th {
+    vertical-align: middle;
+}
+
+/* Improve tooltip appearance */
+.tooltip {
+    opacity: 0.9;
+}
+
+.tooltip-inner {
+    max-width: 200px;
+    padding: 5px 10px;
+    background-color: #000;
+    border-radius: 4px;
+}
+
+/* Improve pagination appearance */
+.pagination {
+    margin-top: 1.5rem;
+}
+
+/* Make sure modals are centered properly */
+.modal-dialog {
+    display: flex;
+    align-items: center;
+    min-height: calc(100% - 3.5rem);
+}
+
+/* Scrollable modal body for large code snippets */
+.modal-body {
+    max-height: calc(100vh - 200px);
+    overflow-y: auto;
+}

@@ -1,0 +1,90 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 offset-md-2">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h3 class="card-title"><i class="fas fa-magnifying-glass me-2"></i>Code Analysis Tool</h3>
+            </div>
+            <div class="card-body">
+                <p class="lead">Analyze code repositories for bugs, issues, and vulnerabilities.</p>
+                
+                <form action="{{ url_for('analyze') }}" method="POST" id="analysis-form">
+                    <div class="mb-3">
+                        <label for="repo_url" class="form-label">GitHub Repository URL</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fab fa-github"></i></span>
+                            <input type="url" class="form-control" id="repo_url" name="repo_url" 
+                                placeholder="https://github.com/username/repository" required>
+                        </div>
+                        <div class="form-text">Enter the full URL of a GitHub repository (e.g., https://github.com/AssetMantle/modules)</div>
+                    </div>
+                    
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary" id="analyze-btn">
+                            <i class="fas fa-code-branch me-2"></i>Analyze Repository
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <h4 class="card-title"><i class="fas fa-history me-2"></i>Recent Analyses</h4>
+            </div>
+            <div class="card-body">
+                {% if recent_scans %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Repository</th>
+                                    <th>Analyzed</th>
+                                    <th>Files</th>
+                                    <th>Bugs</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for scan in recent_scans %}
+                                <tr>
+                                    <td>{{ scan.repository.name }}</td>
+                                    <td>{{ scan.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
+                                    <td>{{ scan.analyzed_files }}/{{ scan.total_files }}</td>
+                                    <td>
+                                        <span class="badge {% if scan.total_bugs > 10 %}bg-danger{% elif scan.total_bugs > 0 %}bg-warning{% else %}bg-success{% endif %}">
+                                            {{ scan.total_bugs }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <a href="{{ url_for('results', scan_id=scan.id) }}" class="btn btn-sm btn-outline-info">
+                                            View Report
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>No analysis reports yet. Start by analyzing a repository!
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('analysis-form').addEventListener('submit', function(e) {
+    const btn = document.getElementById('analyze-btn');
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Analyzing...';
+    btn.disabled = true;
+});
+</script>
+{% endblock %}

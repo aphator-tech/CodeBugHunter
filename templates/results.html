@@ -1,0 +1,369 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h3 class="card-title mb-0">
+                    <i class="fas fa-chart-pie me-2"></i>Analysis Summary
+                </h3>
+                <a href="{{ url_for('index') }}" class="btn btn-sm btn-outline-primary">
+                    <i class="fas fa-arrow-left me-1"></i>Back to Home
+                </a>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h4>Repository: {{ repo.name }}</h4>
+                        <p>
+                            <a href="{{ repo.url }}" target="_blank" class="text-decoration-none">
+                                <i class="fab fa-github me-1"></i>{{ repo.url }}
+                            </a>
+                        </p>
+                        <p>Analyzed on: {{ scan.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+                        
+                        <div class="d-flex mb-4">
+                            <div class="me-4">
+                                <h5 class="mb-0">{{ scan.total_files }}</h5>
+                                <small class="text-muted">Total Files</small>
+                            </div>
+                            <div class="me-4">
+                                <h5 class="mb-0">{{ scan.analyzed_files }}</h5>
+                                <small class="text-muted">Analyzed Files</small>
+                            </div>
+                            <div>
+                                <h5 class="mb-0">{{ scan.total_bugs }}</h5>
+                                <small class="text-muted">Total Bugs</small>
+                            </div>
+                        </div>
+                        
+                        <h5>Bug Density: {{ report.overall_bug_density }} bugs per file</h5>
+                        <div class="progress mb-3" style="height: 25px;">
+                            {% set severity_mapping = {
+                                'critical': {'color': 'danger', 'count': report.severity_breakdown.get('critical', 0)},
+                                'high': {'color': 'warning', 'count': report.severity_breakdown.get('high', 0)},
+                                'medium': {'color': 'info', 'count': report.severity_breakdown.get('medium', 0)},
+                                'low': {'color': 'success', 'count': report.severity_breakdown.get('low', 0)},
+                                'info': {'color': 'secondary', 'count': report.severity_breakdown.get('info', 0)}
+                            } %}
+                            
+                            {% for severity, details in severity_mapping.items() %}
+                                {% if details.count > 0 %}
+                                    {% set percentage = (details.count / scan.total_bugs * 100) if scan.total_bugs > 0 else 0 %}
+                                    <div class="progress-bar bg-{{ details.color }}" role="progressbar" 
+                                        style="width: {{ percentage }}%" 
+                                        aria-valuenow="{{ details.count }}" aria-valuemin="0" aria-valuemax="{{ scan.total_bugs }}"
+                                        data-bs-toggle="tooltip" title="{{ severity|capitalize }}: {{ details.count }}">
+                                        {% if percentage > 5 %}{{ severity|capitalize }}: {{ details.count }}{% endif %}
+                                    </div>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="chart-container">
+                            <canvas id="severityChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header">
+                <h4 class="card-title"><i class="fas fa-file-code me-2"></i>Top Affected Files</h4>
+            </div>
+            <div class="card-body">
+                {% if report.most_affected_files %}
+                    <div class="chart-container">
+                        <canvas id="filesChart"></canvas>
+                    </div>
+                {% else %}
+                    <div class="alert alert-info">No affected files data available.</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header">
+                <h4 class="card-title"><i class="fas fa-code me-2"></i>Language Breakdown</h4>
+            </div>
+            <div class="card-body">
+                {% if language_stats %}
+                    <div class="chart-container">
+                        <canvas id="languageChart"></canvas>
+                    </div>
+                {% else %}
+                    <div class="alert alert-info">No language statistics available.</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if report.critical_bugs %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card border-danger">
+            <div class="card-header bg-danger text-white">
+                <h4 class="card-title mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Critical Issues</h4>
+            </div>
+            <div class="card-body">
+                <div class="list-group">
+                    {% for bug in report.critical_bugs %}
+                    <div class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h5 class="mb-1">{{ bug.type }}</h5>
+                            <small>{{ bug.file_path }}:{{ bug.line_number }}</small>
+                        </div>
+                        <p class="mb-1">{{ bug.description }}</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="card-title"><i class="fas fa-list me-2"></i>Bug List</h4>
+            </div>
+            <div class="card-body">
+                {% if bugs.items %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>File</th>
+                                <th>Line</th>
+                                <th>Type</th>
+                                <th>Severity</th>
+                                <th>Description</th>
+                                <th>Details</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for bug in bugs.items %}
+                            <tr>
+                                <td class="text-truncate" style="max-width: 200px;" title="{{ bug.file_path }}">
+                                    {{ bug.file_path }}
+                                </td>
+                                <td>{{ bug.line_number }}</td>
+                                <td>{{ bug.bug_type }}</td>
+                                <td>
+                                    <span class="badge bg-{{ 
+                                        'danger' if bug.severity == 'critical' else 
+                                        'warning' if bug.severity == 'high' else 
+                                        'info' if bug.severity == 'medium' else 
+                                        'success' if bug.severity == 'low' else 
+                                        'secondary' 
+                                    }}">
+                                        {{ bug.severity }}
+                                    </span>
+                                </td>
+                                <td class="text-truncate" style="max-width: 350px;">{{ bug.description }}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-info" data-bs-toggle="modal" data-bs-target="#bugModal-{{ bug.id }}">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            
+                            <!-- Modal for bug details -->
+                            <div class="modal fade" id="bugModal-{{ bug.id }}" tabindex="-1" aria-labelledby="bugModalLabel-{{ bug.id }}" aria-hidden="true">
+                                <div class="modal-dialog modal-lg">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title" id="bugModalLabel-{{ bug.id }}">{{ bug.bug_type }}</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <dl class="row">
+                                                <dt class="col-sm-3">File:</dt>
+                                                <dd class="col-sm-9">{{ bug.file_path }}</dd>
+                                                
+                                                <dt class="col-sm-3">Line Number:</dt>
+                                                <dd class="col-sm-9">{{ bug.line_number }}</dd>
+                                                
+                                                <dt class="col-sm-3">Severity:</dt>
+                                                <dd class="col-sm-9">
+                                                    <span class="badge bg-{{ 
+                                                        'danger' if bug.severity == 'critical' else 
+                                                        'warning' if bug.severity == 'high' else 
+                                                        'info' if bug.severity == 'medium' else 
+                                                        'success' if bug.severity == 'low' else 
+                                                        'secondary' 
+                                                    }}">
+                                                        {{ bug.severity }}
+                                                    </span>
+                                                </dd>
+                                                
+                                                <dt class="col-sm-3">Language:</dt>
+                                                <dd class="col-sm-9">{{ bug.language }}</dd>
+                                                
+                                                <dt class="col-sm-3">Description:</dt>
+                                                <dd class="col-sm-9">{{ bug.description }}</dd>
+                                                
+                                                <dt class="col-sm-3">Recommendation:</dt>
+                                                <dd class="col-sm-9">{{ bug.recommendation }}</dd>
+                                            </dl>
+                                            
+                                            {% if bug.code_snippet %}
+                                            <div class="mt-3">
+                                                <h6>Code Snippet:</h6>
+                                                <pre><code class="language-{{ bug.language|lower }}">{{ bug.code_snippet }}</code></pre>
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Pagination -->
+                {% if bugs.pages > 1 %}
+                <nav aria-label="Bug pagination">
+                    <ul class="pagination justify-content-center">
+                        {% if bugs.has_prev %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('results', scan_id=scan.id, page=bugs.prev_num) }}">Previous</a>
+                        </li>
+                        {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link">Previous</span>
+                        </li>
+                        {% endif %}
+                        
+                        {% for page_num in bugs.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                            {% if page_num %}
+                                {% if page_num == bugs.page %}
+                                <li class="page-item active">
+                                    <span class="page-link">{{ page_num }}</span>
+                                </li>
+                                {% else %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('results', scan_id=scan.id, page=page_num) }}">{{ page_num }}</a>
+                                </li>
+                                {% endif %}
+                            {% else %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">...</span>
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% if bugs.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('results', scan_id=scan.id, page=bugs.next_num) }}">Next</a>
+                        </li>
+                        {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link">Next</span>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+                {% endif %}
+                
+                {% else %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>No bugs found in this repository.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Severity chart data
+    const severityData = {
+        labels: [
+            {% for severity, count in report.severity_breakdown.items() %}
+                '{{ severity|capitalize }}',
+            {% endfor %}
+        ],
+        values: [
+            {% for severity, count in report.severity_breakdown.items() %}
+                {{ count }},
+            {% endfor %}
+        ],
+        colors: [
+            {% for severity in report.severity_breakdown.keys() %}
+                '{{ 
+                    '#dc3545' if severity == 'critical' else 
+                    '#ffc107' if severity == 'high' else 
+                    '#0dcaf0' if severity == 'medium' else 
+                    '#198754' if severity == 'low' else 
+                    '#6c757d' 
+                }}',
+            {% endfor %}
+        ]
+    };
+    
+    // Top affected files data
+    const filesData = {
+        labels: [
+            {% for file, count in report.most_affected_files.items() %}
+                '{{ file|replace("\\", "/")|truncate(30, True) }}',
+            {% endfor %}
+        ],
+        values: [
+            {% for file, count in report.most_affected_files.items() %}
+                {{ count }},
+            {% endfor %}
+        ]
+    };
+    
+    // Language breakdown data
+    const languageData = {
+        labels: [
+            {% for language, stats in report.language_breakdown.items() %}
+                '{{ language }}',
+            {% endfor %}
+        ],
+        file_counts: [
+            {% for language, stats in report.language_breakdown.items() %}
+                {{ stats.count }},
+            {% endfor %}
+        ],
+        bug_counts: [
+            {% for language, stats in report.language_breakdown.items() %}
+                {{ stats.bugs }},
+            {% endfor %}
+        ]
+    };
+    
+    // Initialize charts
+    initSeverityPieChart('severityChart', severityData);
+    initTopFilesBarChart('filesChart', filesData);
+    initLanguageBarChart('languageChart', languageData);
+    
+    // Initialize tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl)
+    });
+});
+</script>
+{% endblock %}
